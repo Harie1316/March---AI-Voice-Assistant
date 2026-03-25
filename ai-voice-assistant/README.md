@@ -6,16 +6,16 @@
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                    Flask API Gateway                         │
-│                   (REST Endpoints)                           │
+│                    Flask API Gateway                        │
+│                   (REST Endpoints)                          │
 ├──────────┬──────────┬───────────────┬───────────────────────┤
 │  Audio   │  Speech  │    NLP &      │   Task Automation     │
 │  Preproc │  Recog.  │  Command      │   & Integration       │
 │  Service │  Service │  Processing   │   Service             │
 │ (Librosa)│ (Whisper)│ (OpenAI API)  │  (RESTful APIs)       │
 ├──────────┴──────────┴───────────────┴───────────────────────┤
-│              Docker Microservices Layer                       │
-│         (Optimised Audio Chunking & Streaming)               │
+│              Docker Microservices Layer                     │
+│         (Optimised Audio Chunking & Streaming)              │
 └─────────────────────────────────────────────────────────────┘
 ```
 
