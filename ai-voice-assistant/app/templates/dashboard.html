@@ -1,0 +1,893 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vox — AI Voice Assistant</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-primary: #0a0a0f;
+            --bg-secondary: #12121a;
+            --bg-card: #181822;
+            --bg-elevated: #1e1e2a;
+            --border: #2a2a3a;
+            --border-subtle: #1f1f2f;
+            --text-primary: #e8e8f0;
+            --text-secondary: #8888a0;
+            --text-dim: #555570;
+            --accent: #6c5ce7;
+            --accent-glow: rgba(108, 92, 231, 0.25);
+            --accent-bright: #a29bfe;
+            --success: #00cec9;
+            --warning: #fdcb6e;
+            --danger: #ff6b6b;
+            --cyan: #00b4d8;
+            --radius: 12px;
+            --radius-sm: 8px;
+            --font: 'DM Sans', -apple-system, sans-serif;
+            --mono: 'JetBrains Mono', monospace;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: var(--font);
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* ─── AMBIENT BACKGROUND ─── */
+        .ambient {
+            position: fixed; inset: 0; z-index: 0; pointer-events: none;
+            background:
+                radial-gradient(ellipse 600px 400px at 20% 20%, rgba(108,92,231,0.06), transparent),
+                radial-gradient(ellipse 500px 500px at 80% 70%, rgba(0,206,201,0.04), transparent);
+        }
+
+        /* ─── LAYOUT ─── */
+        .app { position: relative; z-index: 1; display: flex; min-height: 100vh; }
+
+        .sidebar {
+            width: 260px; background: var(--bg-secondary);
+            border-right: 1px solid var(--border-subtle);
+            padding: 28px 20px; display: flex; flex-direction: column;
+            position: fixed; top: 0; left: 0; bottom: 0;
+        }
+
+        .logo {
+            font-size: 22px; font-weight: 700; letter-spacing: -0.5px;
+            margin-bottom: 8px; display: flex; align-items: center; gap: 10px;
+        }
+        .logo-dot {
+            width: 10px; height: 10px; border-radius: 50%;
+            background: var(--accent); box-shadow: 0 0 12px var(--accent-glow);
+            animation: pulse-dot 2s ease-in-out infinite;
+        }
+        @keyframes pulse-dot {
+            0%, 100% { opacity: 0.7; transform: scale(1); }
+            50% { opacity: 1; transform: scale(1.2); }
+        }
+
+        .sidebar-subtitle {
+            font-size: 12px; color: var(--text-dim); margin-bottom: 32px;
+            letter-spacing: 0.5px; text-transform: uppercase;
+        }
+
+        .nav-section { margin-bottom: 28px; }
+        .nav-label {
+            font-size: 10px; text-transform: uppercase; letter-spacing: 1.5px;
+            color: var(--text-dim); margin-bottom: 10px; padding-left: 12px;
+        }
+        .nav-item {
+            display: flex; align-items: center; gap: 10px;
+            padding: 10px 12px; border-radius: var(--radius-sm);
+            color: var(--text-secondary); font-size: 14px; font-weight: 500;
+            cursor: pointer; transition: all 0.2s;
+        }
+        .nav-item:hover { background: var(--bg-elevated); color: var(--text-primary); }
+        .nav-item.active {
+            background: var(--accent-glow); color: var(--accent-bright);
+            border: 1px solid rgba(108,92,231,0.2);
+        }
+        .nav-icon { width: 18px; text-align: center; font-size: 15px; }
+
+        .sidebar-footer { margin-top: auto; }
+        .status-badge {
+            display: inline-flex; align-items: center; gap: 6px;
+            padding: 6px 12px; border-radius: 20px; font-size: 12px;
+            background: rgba(0,206,201,0.1); color: var(--success);
+            border: 1px solid rgba(0,206,201,0.15);
+        }
+        .status-dot {
+            width: 6px; height: 6px; border-radius: 50%;
+            background: var(--success); animation: pulse-dot 2s ease-in-out infinite;
+        }
+
+        .main {
+            flex: 1; margin-left: 260px; padding: 32px 40px;
+            display: flex; flex-direction: column; gap: 28px;
+        }
+
+        /* ─── HEADER ─── */
+        .header {
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .header h1 {
+            font-size: 26px; font-weight: 700; letter-spacing: -0.5px;
+        }
+        .header-actions { display: flex; gap: 10px; }
+
+        /* ─── BUTTONS ─── */
+        .btn {
+            padding: 10px 18px; border-radius: var(--radius-sm);
+            border: 1px solid var(--border); background: var(--bg-card);
+            color: var(--text-primary); font-family: var(--font);
+            font-size: 13px; font-weight: 500; cursor: pointer;
+            transition: all 0.2s; display: inline-flex; align-items: center; gap: 8px;
+        }
+        .btn:hover { background: var(--bg-elevated); border-color: var(--text-dim); }
+        .btn-primary {
+            background: var(--accent); border-color: var(--accent);
+            color: white;
+        }
+        .btn-primary:hover {
+            background: #7c6cf0; box-shadow: 0 0 20px var(--accent-glow);
+        }
+        .btn-sm { padding: 6px 12px; font-size: 12px; }
+
+        /* ─── CARDS ─── */
+        .card {
+            background: var(--bg-card); border: 1px solid var(--border-subtle);
+            border-radius: var(--radius); padding: 24px;
+        }
+        .card-title {
+            font-size: 13px; font-weight: 600; color: var(--text-secondary);
+            text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 16px;
+        }
+
+        /* ─── GRID ─── */
+        .stats-grid {
+            display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px;
+        }
+        .stat-card {
+            background: var(--bg-card); border: 1px solid var(--border-subtle);
+            border-radius: var(--radius); padding: 20px;
+        }
+        .stat-label {
+            font-size: 12px; color: var(--text-dim); text-transform: uppercase;
+            letter-spacing: 0.8px; margin-bottom: 8px;
+        }
+        .stat-value {
+            font-size: 28px; font-weight: 700; letter-spacing: -1px;
+            font-family: var(--mono);
+        }
+        .stat-value.accent { color: var(--accent-bright); }
+        .stat-value.success { color: var(--success); }
+        .stat-value.warning { color: var(--warning); }
+        .stat-value.cyan { color: var(--cyan); }
+        .stat-sub {
+            font-size: 11px; color: var(--text-dim); margin-top: 4px;
+        }
+
+        /* ─── VOICE CONTROL ─── */
+        .voice-section {
+            display: grid; grid-template-columns: 1fr 1fr; gap: 20px;
+        }
+
+        .voice-control {
+            display: flex; flex-direction: column; align-items: center;
+            justify-content: center; gap: 20px; min-height: 280px;
+        }
+
+        .mic-btn {
+            width: 100px; height: 100px; border-radius: 50%;
+            background: var(--bg-elevated); border: 2px solid var(--border);
+            color: var(--text-secondary); font-size: 36px;
+            cursor: pointer; transition: all 0.3s;
+            display: flex; align-items: center; justify-content: center;
+            position: relative;
+        }
+        .mic-btn::before {
+            content: ''; position: absolute; inset: -8px;
+            border-radius: 50%; border: 2px solid transparent;
+            transition: all 0.3s;
+        }
+        .mic-btn:hover {
+            border-color: var(--accent); color: var(--accent-bright);
+            background: rgba(108,92,231,0.1);
+        }
+        .mic-btn:hover::before {
+            border-color: var(--accent-glow);
+        }
+        .mic-btn.recording {
+            background: rgba(255,107,107,0.15); border-color: var(--danger);
+            color: var(--danger); animation: mic-pulse 1.5s ease-in-out infinite;
+        }
+        .mic-btn.recording::before {
+            border-color: rgba(255,107,107,0.3);
+            animation: mic-ring 1.5s ease-out infinite;
+        }
+        @keyframes mic-pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+        @keyframes mic-ring {
+            0% { transform: scale(1); opacity: 1; }
+            100% { transform: scale(1.4); opacity: 0; }
+        }
+
+        .mic-label {
+            font-size: 13px; color: var(--text-dim); font-weight: 500;
+        }
+
+        .upload-zone {
+            border: 2px dashed var(--border);
+            border-radius: var(--radius); padding: 20px;
+            text-align: center; cursor: pointer; transition: all 0.2s;
+            margin-top: 16px;
+        }
+        .upload-zone:hover {
+            border-color: var(--accent); background: rgba(108,92,231,0.05);
+        }
+        .upload-zone p { font-size: 13px; color: var(--text-dim); }
+
+        /* ─── TRANSCRIPT ─── */
+        .transcript-area {
+            display: flex; flex-direction: column; gap: 12px;
+        }
+        .transcript-box {
+            background: var(--bg-secondary); border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-sm); padding: 16px;
+            min-height: 120px; font-size: 14px; line-height: 1.7;
+            color: var(--text-primary); white-space: pre-wrap;
+        }
+        .transcript-box.empty { color: var(--text-dim); font-style: italic; }
+
+        .command-result {
+            background: var(--bg-secondary); border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-sm); padding: 16px;
+        }
+        .intent-badge {
+            display: inline-block; padding: 4px 10px; border-radius: 6px;
+            font-size: 12px; font-weight: 600; font-family: var(--mono);
+            background: var(--accent-glow); color: var(--accent-bright);
+            border: 1px solid rgba(108,92,231,0.2);
+        }
+        .confidence-bar {
+            width: 100%; height: 4px; background: var(--bg-elevated);
+            border-radius: 2px; margin-top: 10px; overflow: hidden;
+        }
+        .confidence-fill {
+            height: 100%; border-radius: 2px;
+            background: linear-gradient(90deg, var(--accent), var(--success));
+            transition: width 0.5s ease;
+        }
+
+        .entities-list { margin-top: 12px; display: flex; flex-wrap: wrap; gap: 8px; }
+        .entity-tag {
+            display: inline-flex; align-items: center; gap: 6px;
+            padding: 4px 10px; border-radius: 6px; font-size: 12px;
+            background: rgba(0,180,216,0.1); color: var(--cyan);
+            border: 1px solid rgba(0,180,216,0.15);
+        }
+        .entity-type {
+            font-weight: 600; text-transform: uppercase; font-size: 10px;
+            letter-spacing: 0.5px;
+        }
+
+        .response-text {
+            margin-top: 12px; padding: 12px; border-radius: var(--radius-sm);
+            background: rgba(0,206,201,0.05); border-left: 3px solid var(--success);
+            font-size: 14px; color: var(--text-primary); line-height: 1.6;
+        }
+
+        /* ─── LOG TABLE ─── */
+        .log-section { margin-top: 8px; }
+        .log-table {
+            width: 100%; border-collapse: collapse;
+        }
+        .log-table th {
+            text-align: left; font-size: 11px; text-transform: uppercase;
+            letter-spacing: 0.8px; color: var(--text-dim); padding: 10px 12px;
+            border-bottom: 1px solid var(--border-subtle);
+        }
+        .log-table td {
+            padding: 10px 12px; font-size: 13px; color: var(--text-secondary);
+            border-bottom: 1px solid var(--border-subtle);
+            font-family: var(--mono); font-size: 12px;
+        }
+        .log-table tr:hover td { background: var(--bg-elevated); }
+
+        /* ─── API PLAYGROUND ─── */
+        .api-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        .api-endpoint {
+            background: var(--bg-secondary); border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-sm); padding: 16px;
+            cursor: pointer; transition: all 0.2s;
+        }
+        .api-endpoint:hover {
+            border-color: var(--accent); background: var(--bg-elevated);
+        }
+        .api-method {
+            display: inline-block; padding: 2px 8px; border-radius: 4px;
+            font-size: 11px; font-weight: 700; font-family: var(--mono);
+            letter-spacing: 0.5px;
+        }
+        .api-method.post { background: rgba(108,92,231,0.15); color: var(--accent-bright); }
+        .api-method.get { background: rgba(0,206,201,0.15); color: var(--success); }
+        .api-path {
+            font-family: var(--mono); font-size: 13px; margin-top: 6px;
+            color: var(--text-primary);
+        }
+        .api-desc {
+            font-size: 12px; color: var(--text-dim); margin-top: 4px;
+        }
+
+        /* ─── HIDDEN FILE INPUT ─── */
+        #file-input { display: none; }
+
+        /* ─── PIPELINE VISUALISER ─── */
+        .pipeline {
+            display: flex; align-items: center; gap: 0;
+            padding: 20px 0;
+        }
+        .pipeline-stage {
+            flex: 1; text-align: center; padding: 12px 8px;
+            position: relative;
+        }
+        .pipeline-stage::after {
+            content: '→'; position: absolute; right: -8px; top: 50%;
+            transform: translateY(-50%); color: var(--text-dim); font-size: 16px;
+        }
+        .pipeline-stage:last-child::after { display: none; }
+        .pipeline-icon {
+            width: 40px; height: 40px; border-radius: 10px;
+            background: var(--bg-elevated); border: 1px solid var(--border);
+            display: inline-flex; align-items: center; justify-content: center;
+            font-size: 18px; margin-bottom: 8px;
+        }
+        .pipeline-icon.active {
+            background: var(--accent-glow); border-color: var(--accent);
+        }
+        .pipeline-name { font-size: 11px; color: var(--text-dim); font-weight: 500; }
+        .pipeline-time {
+            font-size: 12px; color: var(--text-secondary); font-family: var(--mono);
+            margin-top: 2px;
+        }
+
+        /* ─── SECTIONS ─── */
+        .section { display: none; }
+        .section.active { display: block; }
+
+        /* ─── RESPONSIVE ─── */
+        @media (max-width: 1024px) {
+            .sidebar { display: none; }
+            .main { margin-left: 0; padding: 20px; }
+            .stats-grid { grid-template-columns: repeat(2, 1fr); }
+            .voice-section { grid-template-columns: 1fr; }
+            .api-grid { grid-template-columns: 1fr; }
+        }
+
+        /* ─── SCROLLBAR ─── */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+    </style>
+</head>
+<body>
+    <div class="ambient"></div>
+    <div class="app">
+        <!-- Sidebar -->
+        <nav class="sidebar">
+            <div class="logo"><span class="logo-dot"></span> Vox</div>
+            <div class="sidebar-subtitle">Voice Assistant</div>
+
+            <div class="nav-section">
+                <div class="nav-label">Main</div>
+                <div class="nav-item active" data-section="dashboard">
+                    <span class="nav-icon">◉</span> Dashboard
+                </div>
+                <div class="nav-item" data-section="voice">
+                    <span class="nav-icon">🎙</span> Voice Control
+                </div>
+                <div class="nav-item" data-section="api">
+                    <span class="nav-icon">⚡</span> API Explorer
+                </div>
+            </div>
+
+            <div class="nav-section">
+                <div class="nav-label">System</div>
+                <div class="nav-item" data-section="tasks">
+                    <span class="nav-icon">☑</span> Tasks
+                </div>
+                <div class="nav-item" data-section="metrics">
+                    <span class="nav-icon">📊</span> Metrics
+                </div>
+            </div>
+
+            <div class="sidebar-footer">
+                <div class="status-badge">
+                    <span class="status-dot"></span> System Online
+                </div>
+            </div>
+        </nav>
+
+        <!-- Main Content -->
+        <main class="main">
+            <!-- DASHBOARD SECTION -->
+            <div class="section active" id="section-dashboard">
+                <div class="header">
+                    <h1>Dashboard</h1>
+                    <div class="header-actions">
+                        <button class="btn btn-sm" onclick="refreshMetrics()">↻ Refresh</button>
+                    </div>
+                </div>
+
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-label">Total Requests</div>
+                        <div class="stat-value accent" id="stat-requests">0</div>
+                        <div class="stat-sub">Lifetime</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Avg Latency</div>
+                        <div class="stat-value cyan" id="stat-latency">0ms</div>
+                        <div class="stat-sub">Rolling average</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Success Rate</div>
+                        <div class="stat-value success" id="stat-success">0%</div>
+                        <div class="stat-sub">Command recognition</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Avg Confidence</div>
+                        <div class="stat-value warning" id="stat-confidence">0.00</div>
+                        <div class="stat-sub">Intent detection</div>
+                    </div>
+                </div>
+
+                <!-- Pipeline Visualiser -->
+                <div class="card">
+                    <div class="card-title">Processing Pipeline</div>
+                    <div class="pipeline">
+                        <div class="pipeline-stage">
+                            <div class="pipeline-icon">🎤</div>
+                            <div class="pipeline-name">Audio Input</div>
+                            <div class="pipeline-time" id="pipe-input">—</div>
+                        </div>
+                        <div class="pipeline-stage">
+                            <div class="pipeline-icon">🔧</div>
+                            <div class="pipeline-name">Preprocessing</div>
+                            <div class="pipeline-time" id="pipe-preproc">—</div>
+                        </div>
+                        <div class="pipeline-stage">
+                            <div class="pipeline-icon">👂</div>
+                            <div class="pipeline-name">Whisper ASR</div>
+                            <div class="pipeline-time" id="pipe-asr">—</div>
+                        </div>
+                        <div class="pipeline-stage">
+                            <div class="pipeline-icon">🧠</div>
+                            <div class="pipeline-name">NLP / OpenAI</div>
+                            <div class="pipeline-time" id="pipe-nlp">—</div>
+                        </div>
+                        <div class="pipeline-stage">
+                            <div class="pipeline-icon">✅</div>
+                            <div class="pipeline-name">Response</div>
+                            <div class="pipeline-time" id="pipe-total">—</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Recent Activity -->
+                <div class="card log-section">
+                    <div class="card-title">Recent Activity</div>
+                    <table class="log-table">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Intent</th>
+                                <th>Confidence</th>
+                                <th>Latency</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="log-body">
+                            <tr><td colspan="5" style="color:var(--text-dim);text-align:center;">No requests yet</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- VOICE SECTION -->
+            <div class="section" id="section-voice">
+                <div class="header">
+                    <h1>Voice Control</h1>
+                </div>
+
+                <div class="voice-section">
+                    <div class="card">
+                        <div class="card-title">Input</div>
+                        <div class="voice-control">
+                            <button class="mic-btn" id="mic-btn" onclick="toggleRecording()">🎤</button>
+                            <div class="mic-label" id="mic-label">Click to start recording</div>
+                        </div>
+                        <div class="upload-zone" onclick="document.getElementById('file-input').click()">
+                            <p>📁 Or drop / click to upload an audio file</p>
+                            <p style="font-size:11px;margin-top:4px;">WAV, MP3, FLAC, OGG, M4A, WebM</p>
+                        </div>
+                        <input type="file" id="file-input" accept=".wav,.mp3,.flac,.ogg,.m4a,.webm" onchange="handleFileUpload(event)">
+                    </div>
+
+                    <div class="card transcript-area">
+                        <div class="card-title">Transcript</div>
+                        <div class="transcript-box empty" id="transcript-box">
+                            Speak or upload audio to see the transcription...
+                        </div>
+
+                        <div class="command-result" id="command-result" style="display:none;">
+                            <div style="display:flex;align-items:center;gap:10px;">
+                                <span style="font-size:12px;color:var(--text-dim);">Intent:</span>
+                                <span class="intent-badge" id="result-intent">—</span>
+                                <span style="font-size:12px;color:var(--text-dim);margin-left:auto;" id="result-conf">—</span>
+                            </div>
+                            <div class="confidence-bar">
+                                <div class="confidence-fill" id="confidence-fill" style="width:0%"></div>
+                            </div>
+                            <div class="entities-list" id="entities-list"></div>
+                            <div class="response-text" id="response-text" style="display:none;"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- API EXPLORER SECTION -->
+            <div class="section" id="section-api">
+                <div class="header">
+                    <h1>API Explorer</h1>
+                </div>
+
+                <div class="api-grid">
+                    <div class="api-endpoint" onclick="testEndpoint('health')">
+                        <span class="api-method get">GET</span>
+                        <div class="api-path">/api/v1/health</div>
+                        <div class="api-desc">Health check & service status</div>
+                    </div>
+                    <div class="api-endpoint" onclick="testEndpoint('metrics')">
+                        <span class="api-method get">GET</span>
+                        <div class="api-path">/api/v1/metrics</div>
+                        <div class="api-desc">Performance metrics summary</div>
+                    </div>
+                    <div class="api-endpoint" onclick="testEndpoint('transcribe')">
+                        <span class="api-method post">POST</span>
+                        <div class="api-path">/api/v1/transcribe</div>
+                        <div class="api-desc">Transcribe audio file</div>
+                    </div>
+                    <div class="api-endpoint" onclick="testEndpoint('command')">
+                        <span class="api-method post">POST</span>
+                        <div class="api-path">/api/v1/command</div>
+                        <div class="api-desc">Process voice command</div>
+                    </div>
+                    <div class="api-endpoint" onclick="testEndpoint('stream')">
+                        <span class="api-method post">POST</span>
+                        <div class="api-path">/api/v1/stream</div>
+                        <div class="api-desc">Stream audio processing</div>
+                    </div>
+                    <div class="api-endpoint" onclick="testEndpoint('tasks')">
+                        <span class="api-method get">GET</span>
+                        <div class="api-path">/api/v1/tasks</div>
+                        <div class="api-desc">List automation tasks</div>
+                    </div>
+                    <div class="api-endpoint" onclick="testEndpoint('intents')">
+                        <span class="api-method get">GET</span>
+                        <div class="api-path">/api/v1/intents</div>
+                        <div class="api-desc">List supported intents</div>
+                    </div>
+                    <div class="api-endpoint" onclick="testEndpoint('templates')">
+                        <span class="api-method get">GET</span>
+                        <div class="api-path">/api/v1/integrate/templates</div>
+                        <div class="api-desc">Integration templates</div>
+                    </div>
+                </div>
+
+                <div class="card" style="margin-top:20px;">
+                    <div class="card-title">Response</div>
+                    <pre id="api-response" style="
+                        background:var(--bg-secondary);padding:16px;border-radius:var(--radius-sm);
+                        font-family:var(--mono);font-size:12px;color:var(--text-secondary);
+                        overflow-x:auto;min-height:100px;white-space:pre-wrap;
+                    ">Click an endpoint above to test it...</pre>
+                </div>
+            </div>
+
+            <!-- TASKS SECTION -->
+            <div class="section" id="section-tasks">
+                <div class="header">
+                    <h1>Task Automation</h1>
+                    <div class="header-actions">
+                        <button class="btn btn-primary btn-sm" onclick="createSampleTask()">+ New Task</button>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-title">Active Tasks</div>
+                    <table class="log-table">
+                        <thead>
+                            <tr><th>ID</th><th>Type</th><th>Description</th><th>Status</th><th>Actions</th></tr>
+                        </thead>
+                        <tbody id="tasks-body">
+                            <tr><td colspan="5" style="color:var(--text-dim);text-align:center;">No tasks yet</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- METRICS SECTION -->
+            <div class="section" id="section-metrics">
+                <div class="header">
+                    <h1>Performance Metrics</h1>
+                    <div class="header-actions">
+                        <button class="btn btn-sm" onclick="refreshMetrics()">↻ Refresh</button>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-title">Full Metrics Report</div>
+                    <pre id="metrics-full" style="
+                        background:var(--bg-secondary);padding:16px;border-radius:var(--radius-sm);
+                        font-family:var(--mono);font-size:12px;color:var(--text-secondary);
+                        overflow-x:auto;white-space:pre-wrap;
+                    ">Loading metrics...</pre>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        // ─── Navigation ───
+        document.querySelectorAll('.nav-item').forEach(item => {
+            item.addEventListener('click', () => {
+                document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+                document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+                item.classList.add('active');
+                document.getElementById(`section-${item.dataset.section}`).classList.add('active');
+            });
+        });
+
+        // ─── Recording ───
+        let mediaRecorder = null;
+        let audioChunks = [];
+        let isRecording = false;
+
+        async function toggleRecording() {
+            const btn = document.getElementById('mic-btn');
+            const label = document.getElementById('mic-label');
+
+            if (isRecording) {
+                mediaRecorder.stop();
+                btn.classList.remove('recording');
+                label.textContent = 'Processing...';
+                isRecording = false;
+            } else {
+                try {
+                    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                    mediaRecorder = new MediaRecorder(stream);
+                    audioChunks = [];
+
+                    mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
+                    mediaRecorder.onstop = async () => {
+                        const blob = new Blob(audioChunks, { type: 'audio/webm' });
+                        stream.getTracks().forEach(t => t.stop());
+                        await processAudio(blob, 'recording.webm');
+                        label.textContent = 'Click to start recording';
+                    };
+
+                    mediaRecorder.start();
+                    btn.classList.add('recording');
+                    label.textContent = 'Recording... Click to stop';
+                    isRecording = true;
+                } catch (err) {
+                    label.textContent = 'Microphone access denied';
+                    console.error(err);
+                }
+            }
+        }
+
+        // ─── File Upload ───
+        function handleFileUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            processAudio(file, file.name);
+        }
+
+        // ─── Process Audio ───
+        async function processAudio(blob, filename) {
+            const transcriptBox = document.getElementById('transcript-box');
+            const commandResult = document.getElementById('command-result');
+
+            transcriptBox.textContent = 'Processing audio...';
+            transcriptBox.classList.remove('empty');
+            commandResult.style.display = 'none';
+
+            const formData = new FormData();
+            formData.append('audio', blob, filename);
+
+            try {
+                const res = await fetch('/api/v1/command', { method: 'POST', body: formData });
+                const data = await res.json();
+
+                if (data.error) {
+                    transcriptBox.textContent = `Error: ${data.error}`;
+                    return;
+                }
+
+                transcriptBox.textContent = data.raw_text || '(no transcription)';
+                showCommandResult(data);
+                updatePipeline(data.performance);
+                refreshMetrics();
+            } catch (err) {
+                transcriptBox.textContent = `Network error: ${err.message}`;
+            }
+        }
+
+        function showCommandResult(data) {
+            const el = document.getElementById('command-result');
+            el.style.display = 'block';
+
+            document.getElementById('result-intent').textContent = data.intent;
+            document.getElementById('result-conf').textContent = `${(data.confidence * 100).toFixed(0)}%`;
+            document.getElementById('confidence-fill').style.width = `${data.confidence * 100}%`;
+
+            const entitiesList = document.getElementById('entities-list');
+            entitiesList.innerHTML = '';
+            (data.entities || []).forEach(e => {
+                entitiesList.innerHTML += `
+                    <span class="entity-tag">
+                        <span class="entity-type">${e.type}</span>
+                        ${e.value}
+                    </span>`;
+            });
+
+            const responseEl = document.getElementById('response-text');
+            if (data.response) {
+                responseEl.textContent = data.response;
+                responseEl.style.display = 'block';
+            } else {
+                responseEl.style.display = 'none';
+            }
+        }
+
+        function updatePipeline(perf) {
+            if (!perf) return;
+            document.getElementById('pipe-preproc').textContent = `${perf.preprocessing_ms?.toFixed(0) || 0}ms`;
+            document.getElementById('pipe-asr').textContent = `${perf.transcription_ms?.toFixed(0) || 0}ms`;
+            document.getElementById('pipe-nlp').textContent = `${perf.command_processing_ms?.toFixed(0) || 0}ms`;
+            document.getElementById('pipe-total').textContent = `${perf.total_latency_ms?.toFixed(0) || 0}ms`;
+        }
+
+        // ─── Metrics ───
+        async function refreshMetrics() {
+            try {
+                const res = await fetch('/api/v1/metrics');
+                const data = await res.json();
+
+                document.getElementById('stat-requests').textContent = data.overview?.total_requests || 0;
+                document.getElementById('stat-latency').textContent = `${data.latency?.mean_ms || 0}ms`;
+                document.getElementById('stat-success').textContent = `${(data.overview?.success_rate || 0).toFixed(0)}%`;
+                document.getElementById('stat-confidence').textContent = (data.accuracy?.mean_confidence || 0).toFixed(2);
+
+                document.getElementById('metrics-full').textContent = JSON.stringify(data, null, 2);
+
+                // Refresh recent
+                const recentRes = await fetch('/api/v1/metrics/recent?n=10');
+                const recentData = await recentRes.json();
+                updateLogTable(recentData.recent || []);
+            } catch (err) {
+                console.error('Metrics fetch error:', err);
+            }
+        }
+
+        function updateLogTable(recent) {
+            const tbody = document.getElementById('log-body');
+            if (!recent.length) return;
+
+            tbody.innerHTML = recent.map(r => `
+                <tr>
+                    <td>${r.request_id}</td>
+                    <td><span class="intent-badge" style="font-size:11px;">${r.intent || '—'}</span></td>
+                    <td>${(r.confidence || 0).toFixed(2)}</td>
+                    <td>${r.total_latency_ms?.toFixed(0) || 0}ms</td>
+                    <td style="color:${r.was_successful ? 'var(--success)' : 'var(--danger)'}">
+                        ${r.was_successful ? '✓' : '✗'}
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        // ─── API Explorer ───
+        async function testEndpoint(name) {
+            const pre = document.getElementById('api-response');
+            pre.textContent = 'Loading...';
+
+            const endpoints = {
+                health: '/api/v1/health',
+                metrics: '/api/v1/metrics',
+                tasks: '/api/v1/tasks',
+                intents: '/api/v1/intents',
+                templates: '/api/v1/integrate/templates',
+            };
+
+            const url = endpoints[name];
+            if (!url) {
+                pre.textContent = `Endpoint "${name}" requires a POST request with data.\nUse the Voice Control panel or cURL to test.`;
+                return;
+            }
+
+            try {
+                const res = await fetch(url);
+                const data = await res.json();
+                pre.textContent = JSON.stringify(data, null, 2);
+            } catch (err) {
+                pre.textContent = `Error: ${err.message}`;
+            }
+        }
+
+        // ─── Tasks ───
+        async function createSampleTask() {
+            try {
+                const res = await fetch('/api/v1/tasks', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        type: 'reminder',
+                        description: 'Review voice assistant metrics',
+                        execute: true,
+                    }),
+                });
+                const data = await res.json();
+                refreshTasks();
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        async function refreshTasks() {
+            try {
+                const res = await fetch('/api/v1/tasks');
+                const data = await res.json();
+                const tbody = document.getElementById('tasks-body');
+
+                if (!data.tasks?.length) return;
+                tbody.innerHTML = data.tasks.map(t => `
+                    <tr>
+                        <td>${t.id}</td>
+                        <td><span class="intent-badge" style="font-size:11px;">${t.type}</span></td>
+                        <td style="color:var(--text-primary);font-family:var(--font);">${t.description}</td>
+                        <td style="color:${t.status === 'completed' ? 'var(--success)' : 'var(--warning)'}">${t.status}</td>
+                        <td>
+                            ${t.status === 'pending'
+                                ? `<button class="btn btn-sm" onclick="executeTask('${t.id}')">Run</button>`
+                                : '—'
+                            }
+                        </td>
+                    </tr>
+                `).join('');
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        async function executeTask(id) {
+            await fetch(`/api/v1/tasks/${id}/execute`, { method: 'POST' });
+            refreshTasks();
+        }
+
+        // ─── Init ───
+        refreshMetrics();
+        setInterval(refreshMetrics, 15000);
+    </script>
+</body>
+</html>
